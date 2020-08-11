@@ -12,10 +12,9 @@ class JsonSchemaWidget(AdminTextareaWidget):
 
     @property
     def media(self):
-        prefix = 'config'
         js = [
-            static('{0}/js/{1}'.format(prefix, f))
-            for f in (
+            static(f'config/js/{path}')
+            for path in (
                 'utils.js',
                 'lib/advanced-mode.js',
                 'lib/tomorrow_night_bright.js',
@@ -25,8 +24,8 @@ class JsonSchemaWidget(AdminTextareaWidget):
         ]
         css = {
             'all': [
-                static('{0}/css/{1}'.format(prefix, f))
-                for f in ('lib/jsonschema-ui.css', 'lib/advanced-mode.css')
+                static(f'config/css/{path}')
+                for path in ('lib/jsonschema-ui.css', 'lib/advanced-mode.css')
             ]
         }
         return forms.Media(js=js, css=css)
@@ -46,3 +45,35 @@ class JsonSchemaWidget(AdminTextareaWidget):
         html = html.format(_('Advanced mode (raw JSON)'), reverse('admin:schema'))
         html += super().render(name, value, attrs, renderer)
         return html
+
+from django.conf import settings
+from django.template import Context
+import django
+from django.template.loader import get_template
+from django.utils.safestring import mark_safe
+
+class JsonKeyValueWidget(AdminTextareaWidget):
+    """
+    JSON Key/Value widget
+    """
+
+    @property
+    def media(self):
+        internal_js = [
+            'lib/underscore.js',
+            'jsonwidget.js'
+        ]
+        js = [static(f'config/js/{path}') for path in internal_js]
+        css = {
+            'all': (static('config/css/keyvalue.css'),)
+        }
+        return forms.Media(js=js, css=css)
+
+    def render(self, name, value, attrs=None, renderer=None):
+        attrs = attrs or {}
+        # it's called "original" because it will be replaced by a copy
+        attrs['class'] = 'flat-json-original-textarea'
+        html = super().render(name, value, attrs)
+        template = get_template('json_keyvalue_widget.html')
+        html += template.render({'field_name': name})
+        return mark_safe(html)

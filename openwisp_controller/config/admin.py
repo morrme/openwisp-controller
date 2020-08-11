@@ -36,7 +36,7 @@ from ..pki.base import PkiReversionTemplatesMixin
 from . import settings as app_settings
 from .utils import send_file
 from .views import schema
-from .widgets import JsonSchemaWidget
+from .widgets import JsonSchemaWidget, JsonKeyValueWidget
 
 logger = logging.getLogger(__name__)
 prefix = 'config/'
@@ -318,6 +318,19 @@ class ConfigForm(AlwaysHasChangedMixin, BaseForm):
 
     class Meta(BaseForm.Meta):
         model = Config
+        widgets = {
+            'config': JsonSchemaWidget,
+            'context': JsonKeyValueWidget
+        }
+        labels = {
+            'context': _('Configuration Variables'),
+        }
+        help_texts = {
+            'context': _(
+                "In this section it's possible to override the default values of variables defined in templates. "
+                "If you're not using configuration variables you can safely ignore this section."
+            ),
+        }
 
 
 class ConfigInline(MultitenantAdminMixin, TimeReadonlyAdminMixin, admin.StackedInline):
@@ -325,11 +338,9 @@ class ConfigInline(MultitenantAdminMixin, TimeReadonlyAdminMixin, admin.StackedI
     form = ConfigForm
     verbose_name_plural = _('Device configuration details')
     readonly_fields = ['status']
-    fieldsets = (
-        (None, {'fields': ('backend', 'status', 'templates', 'config')}),
-        (_('Advanced options'), {'classes': ('collapse',), 'fields': ('context',)}),
-        (None, {'fields': ('created', 'modified')}),
-    )
+    fields = [
+        'backend', 'status', 'templates', 'context', 'config', 'created', 'modified'
+    ]
     change_select_related = ('device',)
     extra = 0
     verbose_name = _('Configuration')
@@ -460,6 +471,16 @@ class CloneOrganizationForm(forms.Form):
 class TemplateForm(BaseForm):
     class Meta(BaseForm.Meta):
         model = Template
+        widgets = {
+            'config': JsonSchemaWidget,
+            'default_values': JsonKeyValueWidget
+        }
+        labels = {
+            'default_values': _('Configuration variables'),
+        }
+        help_texts = {
+            'default_values': _("If you want to use configuration variables in this template, define them here along with their default values. The content of each variable can be overridden in each device.")
+        }
 
 
 class TemplateAdmin(MultitenantAdminMixin, BaseConfigAdmin):
@@ -482,28 +503,20 @@ class TemplateAdmin(MultitenantAdminMixin, BaseConfigAdmin):
     ]
     search_fields = ['name']
     multitenant_shared_relations = ('vpn',)
-    fieldsets = (
-        (
-            None,
-            {
-                'fields': [
-                    'name',
-                    'organization',
-                    'type',
-                    'backend',
-                    'vpn',
-                    'auto_cert',
-                    'tags',
-                    'default',
-                ]
-            },
-        ),
-        (
-            _('Advanced options'),
-            {'classes': ('collapse',), 'fields': ('default_values',)},
-        ),
-        (None, {'fields': ('config', 'created', 'modified')}),
-    )
+    fields = [
+        'name',
+        'organization',
+        'type',
+        'backend',
+        'vpn',
+        'auto_cert',
+        'tags',
+        'default',
+        'default_values',
+        'config',
+        'created',
+        'modified'
+    ]
 
     def clone_selected_templates(self, request, queryset):
         selectable_orgs = None
