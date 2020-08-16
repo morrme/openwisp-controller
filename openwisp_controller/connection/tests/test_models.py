@@ -11,6 +11,7 @@ from openwisp_utils.tests import catch_signal
 
 from .. import settings as app_settings
 from ..signals import is_working_changed
+from ..tasks import update_config
 from .utils import CreateConnectionsMixin
 
 Config = load_model('config', 'Config')
@@ -378,3 +379,9 @@ class TestModels(CreateConnectionsMixin, TestCase):
         self._create_config(device=dev2)
         dc2 = self._create_device_connection(device=dev2)
         self.assertFalse(hasattr(dc2.connector_instance, 'IS_MODIFIED'))
+
+    @mock.patch('logging.Logger.warning')
+    def test_update_config_task_resilient_to_failure(self, mocked):
+        pk = self._create_device().pk
+        update_config.delay(pk)
+        mocked.assert_called_with(f'Device with id: {pk} does not exist')
